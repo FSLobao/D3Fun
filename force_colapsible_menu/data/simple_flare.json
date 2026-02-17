@@ -2,55 +2,61 @@
  "name": "Central Node",
  "size": 20,
  "color": "#ff0000",
+ "borderColor": "#ff0000",
  "children": [
   {
    "name": "Cluster A",
    "size": 20,
    "color": "#ff7f0e",
+   "borderColor": "#ff7f0e",
    "children": [
-    {"name": "Leaf A.1", "size": 10, "color": "#ffbb78"},
-    {"name": "Leaf A.2", "size": 10, "color": "#ffbb78"},
-    {"name": "Leaf A.3", "size": 10, "color": "#ffbb78"}
+    {"name": "Leaf A.1", "size": 10, "color": "#ffbb78", "borderColor": "#ffbb78"},
+    {"name": "Leaf A.2", "size": 10, "color": "#ffbb78", "borderColor": "#ffbb78"},
+    {"name": "Leaf A.3", "size": 10, "color": "#ffbb78", "borderColor": "#ffbb78"}
    ]
   },
   {
    "name": "Cluster B",
    "size": 20,
    "color": "#2ca02c",
+   "borderColor": "#2ca02c",
    "children": [
-    {"name": "Leaf B.1", "size": 10, "color": "#98df8a"},
-    {"name": "Leaf B.2", "size": 10, "color": "#98df8a"},
-    {"name": "Leaf B.3", "size": 10, "color": "#98df8a"}
+    {"name": "Leaf B.1", "size": 10, "color": "#98df8a", "borderColor": "#98df8a"},
+    {"name": "Leaf B.2", "size": 10, "color": "#98df8a", "borderColor": "#98df8a"},
+    {"name": "Leaf B.3", "size": 10, "color": "#98df8a", "borderColor": "#98df8a"}
    ]
   },
   {
    "name": "Cluster C",
    "size": 20,
    "color": "#1f77b4",
+   "borderColor": "#1f77b4",
    "children": [
-    {"name": "Leaf C.1", "size": 10, "color": "#aec7e8"},
-    {"name": "Leaf C.2", "size": 10, "color": "#aec7e8"},
-    {"name": "Leaf C.3", "size": 10, "color": "#aec7e8"}
+    {"name": "Leaf C.1", "size": 10, "color": "#aec7e8", "borderColor": "#aec7e8"},
+    {"name": "Leaf C.2", "size": 10, "color": "#aec7e8", "borderColor": "#aec7e8"},
+    {"name": "Leaf C.3", "size": 10, "color": "#aec7e8", "borderColor": "#aec7e8"}
    ]
   },
   {
    "name": "Cluster D",
    "size": 20,
    "color": "#9467bd",
+   "borderColor": "#9467bd",
    "children": [
-    {"name": "Leaf D.1", "size": 10, "color": "#c5b0d5"},
-    {"name": "Leaf D.2", "size": 10, "color": "#c5b0d5"},
-    {"name": "Leaf D.3", "size": 10, "color": "#c5b0d5"}
+    {"name": "Leaf D.1", "size": 10, "color": "#c5b0d5", "borderColor": "#c5b0d5"},
+    {"name": "Leaf D.2", "size": 10, "color": "#c5b0d5", "borderColor": "#c5b0d5"},
+    {"name": "Leaf D.3", "size": 10, "color": "#c5b0d5", "borderColor": "#c5b0d5"}
    ]
   },
   { 
    "name": "Cluster E",
    "size": 20,
    "color": "#8c564b",
+   "borderColor": "#8c564b",
    "children": [
-    {"name": "Leaf E.1", "size": 10, "color": "#c49c94"},
-    {"name": "Leaf E.2", "size": 10, "color": "#c49c94"},
-    {"name": "Leaf E.3", "size": 10, "color": "#c49c94"}
+    {"name": "Leaf E.1", "size": 10, "color": "#c49c94", "borderColor": "#c49c94"},
+    {"name": "Leaf E.2", "size": 10, "color": "#c49c94", "borderColor": "#c49c94"},
+    {"name": "Leaf E.3", "size": 10, "color": "#c49c94", "borderColor": "#c49c94"}
    ]
   }
  ]

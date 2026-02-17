@@ -36,10 +36,18 @@
             root,
             grads;
 
+        var scaleFactor = 3; 
+
         var force = d3.layout.force()
             .on("tick", tick)
-            .charge(function (d) { return -d.radius * 8; })
-            .linkDistance(function (d) { return d.target._children ? 80 : 30; })
+            // Much stronger charge ensures nodes spread out symmetrically
+            .charge(function (d) { return -500 - (d.radius * 10); }) 
+            .linkDistance(function (d) { 
+                // Sum of radii + ample padding allows the "fan" to open up
+                return d.source.radius + d.target.radius + (5 * scaleFactor); 
+            })
+            .friction(0.95) // Helps stabilize
+            .gravity(0.002)  // Gentle pull to center so they don't fly away
             .size([w, h]);
 
         var vis = d3.select("body").append("svg:svg")
@@ -75,16 +83,10 @@
             var nodes = flatten(root),
                 links = d3.layout.tree().links(nodes);
 
-            // Assign radius from size or default
+            // Assign radius from size or default, SCALED
             nodes.forEach(function(d) {
-                d.radius = d.size || 5; 
+                d.radius = (d.size || 5) * scaleFactor; 
             });
-
-            // Restart the force layout.
-            force
-                .nodes(nodes)
-                .links(links)
-                .start();
 
             // Restart the force layout.
             force
@@ -110,32 +112,163 @@
 
 
             // --- NODES ---
-            var nodeData = vis.selectAll("circle.node")
-                .data(nodes, function (d) { return d.id; })
-                .style("fill", function(d) { return d.color || color(d); });
+            // --- NODES ---
+            // Remove old circles if they exist (cleanup from previous version)
+            vis.selectAll("circle.node").remove();
 
-            nodeData.transition()
-                .attr("r", function(d) { return d.radius; });
+            // --- NODES ---
+            
+            // Define fixed font size for all nodes (scaled slightly by global factor)
+            var fontSize = 10 * scaleFactor;
+            
+            // Calculate width for each node based on text
+            nodes.forEach(function(d) {
+                var estimatedTextWidth = d.name.length * fontSize * 0.6;
+                d.rectWidth = Math.max(d.radius * 2, estimatedTextWidth + (fontSize)); // Padding
+                d.rectHeight = d.radius * 2;
+            });
 
-            // Enter
-            nodeData.enter().append("svg:circle")
-                .attr("class", "node")
-                .attr("cx", function (d) { return d.x; })
-                .attr("cy", function (d) { return d.y; })
-                .attr("r", function(d) { return d.radius; })
+            // Remove old circles if they exist (cleanup from previous version)
+            vis.selectAll("circle.node").remove();
+
+            // Use groups to hold Rect + Text
+            var nodeData = vis.selectAll("g.node")
+                .data(nodes, function (d) { return d.id; });
+
+            // UPDATE existing nodes
+            // We re-select rect/text inside the group to update them
+            nodeData.select("rect")
+                .transition()
+                .attr("width", function(d) { return d.rectWidth; })
+                .attr("height", function(d) { return d.rectHeight; })
+                .attr("rx", function(d) { return d.radius / 3; })
+                .attr("ry", function(d) { return d.radius / 3; })
+                .attr("x", function(d) { return -d.rectWidth / 2; }) 
+                .attr("y", function(d) { return -d.rectHeight / 2; })
                 .style("fill", function(d) { return d.color || color(d); })
-                .on("click", click)
+                .style("stroke", function(d) { return d.borderColor || "#000"; })
+                .style("stroke-width", "1.5px");
+
+            nodeData.select("text")
+                .transition()
+                .text(function(d) { return d.name; })
+                .style("font-size", fontSize + "px");
+
+            // ENTER new nodes
+            var nodeEnter = nodeData.enter().append("svg:g")
+                .attr("class", "node")
                 .call(force.drag);
 
-            // Exit
+            nodeEnter.append("svg:rect")
+                .attr("width", function(d) { return d.rectWidth; })
+                .attr("height", function(d) { return d.rectHeight; })
+                .attr("rx", function(d) { return d.radius / 3; })
+                .attr("ry", function(d) { return d.radius / 3; })
+                .attr("x", function(d) { return -d.rectWidth / 2; }) 
+                .attr("y", function(d) { return -d.rectHeight / 2; })
+                .style("fill", function(d) { return d.color || color(d); })
+                .style("stroke", function(d) { return d.borderColor || "#000"; })
+                .style("stroke-width", "1.5px")
+                .on("click", click);
+            
+            nodeEnter.append("svg:text")
+                .attr("text-anchor", "middle")
+                .attr("dy", ".35em")
+                .text(function(d) { return d.name; })
+                .style("pointer-events", "none")
+                .style("font-family", "sans-serif")
+                .style("fill", "#000") // Black text
+                .style("font-size", fontSize + "px");
+
+            // EXIT old nodes
             nodeData.exit().remove();
             
-            // RE-SELECT all nodes for tick
-            node = vis.selectAll("circle.node");
+            // Re-select for tick
+            node = vis.selectAll("g.node");
         }
 
-        function tick() {
+        function tick(e) {
             // Update Positions
+            
+            // --- COLLISION DETECTION ---
+            // N^2 iteration to prevent rectangular overlap
+            var nodes = force.nodes();
+            var padding = 5 * (scaleFactor / 3); // Scale padding 
+            
+            // --- BOUNDARY REPULSION ---
+            // Keep nodes within the screen (Soft Wall)
+            var k = 0.2; // Softness factor (reuse for collision too)
+            
+            for (var i = 0; i < nodes.length; i++) {
+                var d = nodes[i];
+                var r = d.radius; 
+                var rw = d.rectWidth / 2;
+                var rh = d.rectHeight / 2;
+                
+                // Left
+                if (d.x - rw < 0) {
+                   d.x += (rw - d.x) * k;
+                }
+                // Right
+                if (d.x + rw > w) {
+                   d.x -= (d.x + rw - w) * k;
+                }
+                // Top
+                if (d.y - rh < 0) {
+                   d.y += (rh - d.y) * k;
+                }
+                // Bottom
+                if (d.y + rh > h) {
+                   d.y -= (d.y + rh - h) * k;
+                }
+            }
+
+            for (var i = 0; i < nodes.length; i++) {
+                var a = nodes[i];
+                for (var j = i + 1; j < nodes.length; j++) {
+                    var b = nodes[j];
+                    
+                    // Check overlap
+                    // Distance between centers
+                    var dx = a.x - b.x;
+                    var dy = a.y - b.y;
+                    
+                    // Minimum distance allowed (half width A + half width B + padding)
+                    // Note: rectWidth/Height are full widths.
+                    var minW = (a.rectWidth + b.rectWidth) / 2 + padding;
+                    var minH = (a.rectHeight + b.rectHeight) / 2 + padding;
+                    
+                    if (Math.abs(dx) < minW && Math.abs(dy) < minH) {
+                        // Overlap Detected!
+                        // Calculate penetration depth
+                        var penX = minW - Math.abs(dx);
+                        var penY = minH - Math.abs(dy);
+                        
+                        // Push apart along the axis of least penetration
+                        // We push a bit "gradually" by using alpha or a factor, 
+                        // but to strictly avoid overlap we often use a stiff constraint.
+                        // User asked for "gradually increasing repulsion", which effectively means 
+                        // we apply a force. Here we apply a displacement.
+                        
+
+                        // Push apart
+                        // Using k factor for responsiveness while maintaining "gradual" feel
+                        
+                        if (penX < penY) {
+                             var sign = (dx === 0) ? (Math.random() - 0.5) : (dx / Math.abs(dx));
+                             var push = penX * 0.5 * k; 
+                             a.x += sign * push;
+                             b.x -= sign * push;
+                        } else {
+                            var sign = (dy === 0) ? (Math.random() - 0.5) : (dy / Math.abs(dy));
+                            var push = penY * 0.5 * k;
+                            a.y += sign * push;
+                            b.y -= sign * push;
+                        }
+                    }
+                }
+            }
+
 
             link.attr("d", function(d) {
                 var x1 = d.source.x,
@@ -153,7 +286,8 @@
                 if (dr === 0) return "";
 
                 // Geometry constants for "slime" effect
-                var angleOverlap = Math.min(Math.PI / 2.5, 800 / (dr * dr + 10)); 
+                // Scaled constant: 2000 * scaleFactor^2 (increased for thickness)
+                var angleOverlap = Math.min(Math.PI / 2.2, (2000 * scaleFactor * scaleFactor) / (dr * dr + 10)); 
 
                 // Vectors and Normals
                 var angle = Math.atan2(dy, dx);
@@ -288,8 +422,7 @@
                        " Z";
             });
 
-            node.attr("cx", function (d) { return d.x; })
-                .attr("cy", function (d) { return d.y; });
+            node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
         }
 
         // Color leaf nodes orange, and packages white or blue.

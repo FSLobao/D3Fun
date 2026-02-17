@@ -36,18 +36,18 @@
             root,
             grads;
 
-        var scaleFactor = 3; 
+        var scaleFactor = 3;
 
         var force = d3.layout.force()
             .on("tick", tick)
             // Much stronger charge ensures nodes spread out symmetrically
-            .charge(function (d) { return -500 - (d.radius * 10); }) 
-            .linkDistance(function (d) { 
+            .charge(function (d) { return -800 - (d.radius * 10); })
+            .linkDistance(function (d) {
                 // Sum of radii + ample padding allows the "fan" to open up
-                return d.source.radius + d.target.radius + (5 * scaleFactor); 
+                return d.source.radius + d.target.radius + (5 * scaleFactor);
             })
             .friction(0.95) // Helps stabilize
-            .gravity(0.002)  // Gentle pull to center so they don't fly away
+            .gravity(0.0015)  // Gentle pull to center so they don't fly away
             .size([w, h]);
 
         var vis = d3.select("body").append("svg:svg")
@@ -62,8 +62,8 @@
             h = window.innerHeight;
             vis.attr("width", w).attr("height", h);
             force.size([w, h]).resume();
-            
-            if(root) {
+
+            if (root) {
                 root.px = root.x = w / 2;
                 root.py = root.y = h / 2;
                 // Force tick to immediately update positions
@@ -84,8 +84,8 @@
                 links = d3.layout.tree().links(nodes);
 
             // Assign radius from size or default, SCALED
-            nodes.forEach(function(d) {
-                d.radius = (d.size || 5) * scaleFactor; 
+            nodes.forEach(function (d) {
+                d.radius = (d.size || 5) * scaleFactor;
             });
 
             // Restart the force layout.
@@ -102,7 +102,7 @@
             // Enter
             linkData.enter().insert("svg:path", ".node")
                 .attr("class", "link")
-                .style("fill", function(d) { return d.target.color || color(d.target); });
+                .style("fill", function (d) { return d.target.color || color(d.target); });
 
             // Exit
             linkData.exit().remove();
@@ -117,12 +117,12 @@
             vis.selectAll("circle.node").remove();
 
             // --- NODES ---
-            
+
             // Define fixed font size for all nodes (scaled slightly by global factor)
             var fontSize = 10 * scaleFactor;
-            
+
             // Calculate width for each node based on text
-            nodes.forEach(function(d) {
+            nodes.forEach(function (d) {
                 var estimatedTextWidth = d.name.length * fontSize * 0.6;
                 d.rectWidth = Math.max(d.radius * 2, estimatedTextWidth + (fontSize)); // Padding
                 d.rectHeight = d.radius * 2;
@@ -139,19 +139,19 @@
             // We re-select rect/text inside the group to update them
             nodeData.select("rect")
                 .transition()
-                .attr("width", function(d) { return d.rectWidth; })
-                .attr("height", function(d) { return d.rectHeight; })
-                .attr("rx", function(d) { return d.radius / 3; })
-                .attr("ry", function(d) { return d.radius / 3; })
-                .attr("x", function(d) { return -d.rectWidth / 2; }) 
-                .attr("y", function(d) { return -d.rectHeight / 2; })
-                .style("fill", function(d) { return d.color || color(d); })
-                .style("stroke", function(d) { return d.borderColor || "#000"; })
+                .attr("width", function (d) { return d.rectWidth; })
+                .attr("height", function (d) { return d.rectHeight; })
+                .attr("rx", function (d) { return d.radius / 3; })
+                .attr("ry", function (d) { return d.radius / 3; })
+                .attr("x", function (d) { return -d.rectWidth / 2; })
+                .attr("y", function (d) { return -d.rectHeight / 2; })
+                .style("fill", function (d) { return d.color || color(d); })
+                .style("stroke", function (d) { return d.borderColor || "#000"; })
                 .style("stroke-width", "1.5px");
 
             nodeData.select("text")
                 .transition()
-                .text(function(d) { return d.name; })
+                .text(function (d) { return d.name; })
                 .style("font-size", fontSize + "px");
 
             // ENTER new nodes
@@ -160,21 +160,21 @@
                 .call(force.drag);
 
             nodeEnter.append("svg:rect")
-                .attr("width", function(d) { return d.rectWidth; })
-                .attr("height", function(d) { return d.rectHeight; })
-                .attr("rx", function(d) { return d.radius / 3; })
-                .attr("ry", function(d) { return d.radius / 3; })
-                .attr("x", function(d) { return -d.rectWidth / 2; }) 
-                .attr("y", function(d) { return -d.rectHeight / 2; })
-                .style("fill", function(d) { return d.color || color(d); })
-                .style("stroke", function(d) { return d.borderColor || "#000"; })
+                .attr("width", function (d) { return d.rectWidth; })
+                .attr("height", function (d) { return d.rectHeight; })
+                .attr("rx", function (d) { return d.radius / 3; })
+                .attr("ry", function (d) { return d.radius / 3; })
+                .attr("x", function (d) { return -d.rectWidth / 2; })
+                .attr("y", function (d) { return -d.rectHeight / 2; })
+                .style("fill", function (d) { return d.color || color(d); })
+                .style("stroke", function (d) { return d.borderColor || "#000"; })
                 .style("stroke-width", "1.5px")
                 .on("click", click);
-            
+
             nodeEnter.append("svg:text")
                 .attr("text-anchor", "middle")
                 .attr("dy", ".35em")
-                .text(function(d) { return d.name; })
+                .text(function (d) { return d.name; })
                 .style("pointer-events", "none")
                 .style("font-family", "sans-serif")
                 .style("fill", "#000") // Black text
@@ -182,44 +182,44 @@
 
             // EXIT old nodes
             nodeData.exit().remove();
-            
+
             // Re-select for tick
             node = vis.selectAll("g.node");
         }
 
         function tick(e) {
             // Update Positions
-            
+
             // --- COLLISION DETECTION ---
             // N^2 iteration to prevent rectangular overlap
             var nodes = force.nodes();
             var padding = 5 * (scaleFactor / 3); // Scale padding 
-            
+
             // --- BOUNDARY REPULSION ---
             // Keep nodes within the screen (Soft Wall)
             var k = 0.2; // Softness factor (reuse for collision too)
-            
+
             for (var i = 0; i < nodes.length; i++) {
                 var d = nodes[i];
-                var r = d.radius; 
+                var r = d.radius;
                 var rw = d.rectWidth / 2;
                 var rh = d.rectHeight / 2;
-                
+
                 // Left
                 if (d.x - rw < 0) {
-                   d.x += (rw - d.x) * k;
+                    d.x += (rw - d.x) * k;
                 }
                 // Right
                 if (d.x + rw > w) {
-                   d.x -= (d.x + rw - w) * k;
+                    d.x -= (d.x + rw - w) * k;
                 }
                 // Top
                 if (d.y - rh < 0) {
-                   d.y += (rh - d.y) * k;
+                    d.y += (rh - d.y) * k;
                 }
                 // Bottom
                 if (d.y + rh > h) {
-                   d.y -= (d.y + rh - h) * k;
+                    d.y -= (d.y + rh - h) * k;
                 }
             }
 
@@ -227,38 +227,38 @@
                 var a = nodes[i];
                 for (var j = i + 1; j < nodes.length; j++) {
                     var b = nodes[j];
-                    
+
                     // Check overlap
                     // Distance between centers
                     var dx = a.x - b.x;
                     var dy = a.y - b.y;
-                    
+
                     // Minimum distance allowed (half width A + half width B + padding)
                     // Note: rectWidth/Height are full widths.
                     var minW = (a.rectWidth + b.rectWidth) / 2 + padding;
                     var minH = (a.rectHeight + b.rectHeight) / 2 + padding;
-                    
+
                     if (Math.abs(dx) < minW && Math.abs(dy) < minH) {
                         // Overlap Detected!
                         // Calculate penetration depth
                         var penX = minW - Math.abs(dx);
                         var penY = minH - Math.abs(dy);
-                        
+
                         // Push apart along the axis of least penetration
                         // We push a bit "gradually" by using alpha or a factor, 
                         // but to strictly avoid overlap we often use a stiff constraint.
                         // User asked for "gradually increasing repulsion", which effectively means 
                         // we apply a force. Here we apply a displacement.
-                        
+
 
                         // Push apart
                         // Using k factor for responsiveness while maintaining "gradual" feel
-                        
+
                         if (penX < penY) {
-                             var sign = (dx === 0) ? (Math.random() - 0.5) : (dx / Math.abs(dx));
-                             var push = penX * 0.5 * k; 
-                             a.x += sign * push;
-                             b.x -= sign * push;
+                            var sign = (dx === 0) ? (Math.random() - 0.5) : (dx / Math.abs(dx));
+                            var push = penX * 0.5 * k;
+                            a.x += sign * push;
+                            b.x -= sign * push;
                         } else {
                             var sign = (dy === 0) ? (Math.random() - 0.5) : (dy / Math.abs(dy));
                             var push = penY * 0.5 * k;
@@ -270,7 +270,7 @@
             }
 
 
-            link.attr("d", function(d) {
+            link.attr("d", function (d) {
                 var x1 = d.source.x,
                     y1 = d.source.y,
                     x2 = d.target.x,
@@ -287,7 +287,7 @@
 
                 // Geometry constants for "slime" effect
                 // Scaled constant: 2000 * scaleFactor^2 (increased for thickness)
-                var angleOverlap = Math.min(Math.PI / 2.2, (2000 * scaleFactor * scaleFactor) / (dr * dr + 10)); 
+                var angleOverlap = Math.min(Math.PI / 2.2, (2000 * scaleFactor * scaleFactor) / (dr * dr + 10));
 
                 // Vectors and Normals
                 var angle = Math.atan2(dy, dx);
@@ -302,20 +302,20 @@
                     // Attachment Angles
                     var alpha1 = angle + mult * angleOverlap;
                     var alpha2 = angle + Math.PI - mult * angleOverlap;
-                    
+
                     // Attachment Points P1, P2
                     var p1x = x1 + Math.cos(alpha1) * r1;
                     var p1y = y1 + Math.sin(alpha1) * r1;
-                    
+
                     var p2x = x2 + Math.cos(alpha2) * r2;
                     var p2y = y2 + Math.sin(alpha2) * r2;
-                    
+
                     // Tangent Angles
                     // Tangent 1 (at P1): Perpendicular to radius, pointing towards P2
                     // Radius angle is alpha1. Tangent is alpha1 - mult * PI/2 ?
                     // If mult=1 (Top), Radius ~ +45. Tangent ~ -45 (Points to P2).
                     var t1a = alpha1 - mult * Math.PI / 2;
-                    
+
                     // Tangent 2 (at P2): Perpendicular to radius, pointing towards P1 (for the Bezier handle)
                     // Radius angle is alpha2 (~135). Tangent points "back" to P1.
                     // We want tangent leaving P2 into the curve? No.
@@ -326,37 +326,37 @@
                     // Tangent 2 natural (ccw) at P2 is alpha2 - mult * PI/2. (Approx 135 - 90 = 45). Points "back up/left".
                     // We want handle pointing towards P1.
                     // Let's use simpler logic: Project towards Intersection.
-                    
+
                     var t1vec_x = Math.cos(t1a);
                     var t1vec_y = Math.sin(t1a);
-                    
+
                     var t2a = alpha2 + mult * Math.PI / 2; // Pointing "back" towards P1?
                     // Alpha2 ~ 135. +90 = 225. Points axes.
                     var t2vec_x = Math.cos(t2a);
                     var t2vec_y = Math.sin(t2a);
-                    
+
                     // Control Point Length (Handle)
                     // Standard cubic bezier smoothing is approx d/3.
                     var L = dr / 3;
-                    
+
                     // Candidate Control Points
                     var cp1x = p1x + t1vec_x * L;
                     var cp1y = p1y + t1vec_y * L;
-                    
+
                     var cp2x = p2x + t2vec_x * L;
                     var cp2y = p2y + t2vec_y * L;
-                    
+
                     // CLAMPING Logic
                     // We check signed distance from the center axis line.
                     // Center Line defined by P1(center) + t * (dx, dy).
                     // Signed Dist = (Px - x1)*nx + (Py - y1)*ny.
                     // If mult=1, we expect Positive distance.
                     // If distance goes negative, we shorten L.
-                    
+
                     function clampHandle(px, py, vx, vy) {
                         // Current Distance of CP
                         var dist = (px - x1) * nx + (py - y1) * ny;
-                        
+
                         // If dist has wrong sign (or is zero/too small relative to mult), clamp.
                         // Allowed region: mult * dist >= 0.
                         if (mult * dist < 0) {
@@ -366,43 +366,43 @@
                             // (P_start_x - x1)*nx + ... + L_new * (Vx*nx ...) = 0
                             // Dist_start + L_new * (V dot N) = 0
                             // L_new = - Dist_start / (V dot N)
-                            
+
                             // P_start is p1x/y or p2x/y.
                             var p_start_x = px - vx * L;
                             var p_start_y = py - vy * L;
                             var dist_start = (p_start_x - x1) * nx + (p_start_y - y1) * ny;
                             var v_dot_n = vx * nx + vy * ny;
-                            
+
                             if (Math.abs(v_dot_n) > 1e-5) {
                                 var L_new = -dist_start / v_dot_n;
                                 // ensure we don't flip backwards
                                 if (L_new > 0) {
-                                     return {
-                                         x: p_start_x + vx * L_new,
-                                         y: p_start_y + vy * L_new
-                                     };
+                                    return {
+                                        x: p_start_x + vx * L_new,
+                                        y: p_start_y + vy * L_new
+                                    };
                                 }
                             }
                             // If parallel or weird, just squash to start point
-                            return { x: p_start_x, y: p_start_y }; 
+                            return { x: p_start_x, y: p_start_y };
                         }
                         return { x: px, y: py };
                     }
 
                     var cp1 = clampHandle(cp1x, cp1y, t1vec_x, t1vec_y);
                     var cp2 = clampHandle(cp2x, cp2y, t2vec_x, t2vec_y);
-                    
+
                     return {
-                        p1: {x: p1x, y: p1y},
+                        p1: { x: p1x, y: p1y },
                         cp1: cp1,
                         cp2: cp2,
-                        p2: {x: p2x, y: p2y}
+                        p2: { x: p2x, y: p2y }
                     };
                 }
 
                 var sideA = getSidePath(1);  // Top
                 var sideB = getSidePath(-1); // Bottom
-                
+
                 // Construct Path:
                 // Move to P1_A
                 // Cubic to P2_A (cp1, cp2)
@@ -414,15 +414,15 @@
                 // So we need to reverse it for the path drawing?
                 // Or just draw P2_B -> P1_B.
                 // For a cubic curve, simply reversing control points: C CP2 CP1 End.
-                
+
                 return "M" + sideA.p1.x + "," + sideA.p1.y +
-                       " C" + sideA.cp1.x + "," + sideA.cp1.y + " " + sideA.cp2.x + "," + sideA.cp2.y + " " + sideA.p2.x + "," + sideA.p2.y +
-                       " L" + sideB.p2.x + "," + sideB.p2.y +
-                       " C" + sideB.cp2.x + "," + sideB.cp2.y + " " + sideB.cp1.x + "," + sideB.cp1.y + " " + sideB.p1.x + "," + sideB.p1.y +
-                       " Z";
+                    " C" + sideA.cp1.x + "," + sideA.cp1.y + " " + sideA.cp2.x + "," + sideA.cp2.y + " " + sideA.p2.x + "," + sideA.p2.y +
+                    " L" + sideB.p2.x + "," + sideB.p2.y +
+                    " C" + sideB.cp2.x + "," + sideB.cp2.y + " " + sideB.cp1.x + "," + sideB.cp1.y + " " + sideB.p1.x + "," + sideB.p1.y +
+                    " Z";
             });
 
-            node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+            node.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
         }
 
         // Color leaf nodes orange, and packages white or blue.
@@ -458,7 +458,7 @@
                     }, 0);
                     if (!node.size) node.size = childSize;
                 } else {
-                    if (!node.size) node.size = node.value || 1; 
+                    if (!node.size) node.size = node.value || 1;
                 }
                 if (!node.id) node.id = ++i;
                 nodes.push(node);

@@ -1,7 +1,7 @@
-#  d3 Force directed graph with node size transitions  
+#  D3 Fun  
 
 ----------  
-
+Some small tests using D3 javascript
 
 ## Key points
 

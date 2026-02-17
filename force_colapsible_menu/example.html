@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link type="text/css" rel="stylesheet" href="./css/style.css">
+    <style type="text/css">
+        circle.node {
+            cursor: pointer;
+            stroke: #000;
+            stroke-width: .5px;
+        }
+
+        path.link {
+            fill: #9ecae1;
+            stroke: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>
+        Flare code size<br>
+        force-directed graph
+    </h2>
+    <script type="text/javascript" src="./lib/d3.js"></script>
+    <script type="text/javascript" src="./lib/d3.geom.js"></script>
+    <script type="text/javascript" src="./lib/d3.layout.js"></script>
+    <script type="text/javascript">
+
+
+        var w = window.innerWidth,
+            h = window.innerHeight,
+            node,
+            link,
+            root,
+            grads;
+
+        var force = d3.layout.force()
+            .on("tick", tick)
+            .charge(function (d) { return -d.radius * 8; })
+            .linkDistance(function (d) { return d.target._children ? 80 : 30; })
+            .size([w, h]);
+
+        var vis = d3.select("body").append("svg:svg")
+            .attr("width", w)
+            .attr("height", h);
+
+        // Resize Listener
+        window.addEventListener("resize", resize);
+
+        function resize() {
+            w = window.innerWidth;
+            h = window.innerHeight;
+            vis.attr("width", w).attr("height", h);
+            force.size([w, h]).resume();
+            
+            if(root) {
+                root.px = root.x = w / 2;
+                root.py = root.y = h / 2;
+                // Force tick to immediately update positions
+                tick();
+            };
+        }
+
+        d3.json("./data/simple_flare.json", function (json) {
+            root = json;
+            root.fixed = true;
+            root.x = w / 2;
+            root.y = h / 2;
+            update();
+        });
+
+        function update() {
+            var nodes = flatten(root),
+                links = d3.layout.tree().links(nodes);
+
+            // Assign radius from size or default
+            nodes.forEach(function(d) {
+                d.radius = d.size || 5; 
+            });
+
+            // Restart the force layout.
+            force
+                .nodes(nodes)
+                .links(links)
+                .start();
+
+            // Restart the force layout.
+            force
+                .nodes(nodes)
+                .links(links)
+                .start();
+
+            // --- LINKS ---
+            // Solid color implementation as more robust alternative to gradients
+            var linkData = vis.selectAll("path.link")
+                .data(links, function (d) { return d.target.id; });
+
+            // Enter
+            linkData.enter().insert("svg:path", ".node")
+                .attr("class", "link")
+                .style("fill", function(d) { return d.target.color || color(d.target); });
+
+            // Exit
+            linkData.exit().remove();
+
+            // RE-SELECT all links for tick
+            link = vis.selectAll("path.link");
+
+
+            // --- NODES ---
+            var nodeData = vis.selectAll("circle.node")
+                .data(nodes, function (d) { return d.id; })
+                .style("fill", function(d) { return d.color || color(d); });
+
+            nodeData.transition()
+                .attr("r", function(d) { return d.radius; });
+
+            // Enter
+            nodeData.enter().append("svg:circle")
+                .attr("class", "node")
+                .attr("cx", function (d) { return d.x; })
+                .attr("cy", function (d) { return d.y; })
+                .attr("r", function(d) { return d.radius; })
+                .style("fill", function(d) { return d.color || color(d); })
+                .on("click", click)
+                .call(force.drag);
+
+            // Exit
+            nodeData.exit().remove();
+            
+            // RE-SELECT all nodes for tick
+            node = vis.selectAll("circle.node");
+        }
+
+        function tick() {
+            // Update Positions
+
+            link.attr("d", function(d) {
+                var x1 = d.source.x,
+                    y1 = d.source.y,
+                    x2 = d.target.x,
+                    y2 = d.target.y,
+                    r1 = d.source.radius || 0,
+                    r2 = d.target.radius || 0;
+
+                var dx = x2 - x1,
+                    dy = y2 - y1,
+                    dr = Math.sqrt(dx * dx + dy * dy);
+
+                // If nodes are perfectly overlapping, avoid division by zero
+                if (dr === 0) return "";
+
+                // Geometry constants for "slime" effect
+                var angleOverlap = Math.min(Math.PI / 2.5, 800 / (dr * dr + 10)); 
+
+                // Vectors and Normals
+                var angle = Math.atan2(dy, dx);
+                // Unit normal vector for the axis (pointing "up/left")
+                // Vector d = (dx, dy). Normal = (-dy, dx) / dr.
+                var nx = -dy / dr;
+                var ny = dx / dr;
+
+                // Helper to get formatted path
+                function getSidePath(mult) {
+                    // mult: 1 for Side A (Top), -1 for Side B (Bottom)
+                    // Attachment Angles
+                    var alpha1 = angle + mult * angleOverlap;
+                    var alpha2 = angle + Math.PI - mult * angleOverlap;
+                    
+                    // Attachment Points P1, P2
+                    var p1x = x1 + Math.cos(alpha1) * r1;
+                    var p1y = y1 + Math.sin(alpha1) * r1;
+                    
+                    var p2x = x2 + Math.cos(alpha2) * r2;
+                    var p2y = y2 + Math.sin(alpha2) * r2;
+                    
+                    // Tangent Angles
+                    // Tangent 1 (at P1): Perpendicular to radius, pointing towards P2
+                    // Radius angle is alpha1. Tangent is alpha1 - mult * PI/2 ?
+                    // If mult=1 (Top), Radius ~ +45. Tangent ~ -45 (Points to P2).
+                    var t1a = alpha1 - mult * Math.PI / 2;
+                    
+                    // Tangent 2 (at P2): Perpendicular to radius, pointing towards P1 (for the Bezier handle)
+                    // Radius angle is alpha2 (~135). Tangent points "back" to P1.
+                    // We want tangent leaving P2 into the curve? No.
+                    // Bezier definition: P1 + cp1_vec along tangent. P2 + cp2_vec along tangent (coming from P2 backwards).
+                    // Or usually: Target Point P2. Control Point CP2 "before" P2.
+                    // So vector CP2 -> P2 is tangent.
+                    // Meaning vector P2 -> CP2 is "reverse tangent".
+                    // Tangent 2 natural (ccw) at P2 is alpha2 - mult * PI/2. (Approx 135 - 90 = 45). Points "back up/left".
+                    // We want handle pointing towards P1.
+                    // Let's use simpler logic: Project towards Intersection.
+                    
+                    var t1vec_x = Math.cos(t1a);
+                    var t1vec_y = Math.sin(t1a);
+                    
+                    var t2a = alpha2 + mult * Math.PI / 2; // Pointing "back" towards P1?
+                    // Alpha2 ~ 135. +90 = 225. Points axes.
+                    var t2vec_x = Math.cos(t2a);
+                    var t2vec_y = Math.sin(t2a);
+                    
+                    // Control Point Length (Handle)
+                    // Standard cubic bezier smoothing is approx d/3.
+                    var L = dr / 3;
+                    
+                    // Candidate Control Points
+                    var cp1x = p1x + t1vec_x * L;
+                    var cp1y = p1y + t1vec_y * L;
+                    
+                    var cp2x = p2x + t2vec_x * L;
+                    var cp2y = p2y + t2vec_y * L;
+                    
+                    // CLAMPING Logic
+                    // We check signed distance from the center axis line.
+                    // Center Line defined by P1(center) + t * (dx, dy).
+                    // Signed Dist = (Px - x1)*nx + (Py - y1)*ny.
+                    // If mult=1, we expect Positive distance.
+                    // If distance goes negative, we shorten L.
+                    
+                    function clampHandle(px, py, vx, vy) {
+                        // Current Distance of CP
+                        var dist = (px - x1) * nx + (py - y1) * ny;
+                        
+                        // If dist has wrong sign (or is zero/too small relative to mult), clamp.
+                        // Allowed region: mult * dist >= 0.
+                        if (mult * dist < 0) {
+                            // Find L_new such that dist = 0 (on axis).
+                            // P_new = P_start + L_new * V.
+                            // (P_start_x + L_new*Vx - x1)*nx + ... = 0
+                            // (P_start_x - x1)*nx + ... + L_new * (Vx*nx ...) = 0
+                            // Dist_start + L_new * (V dot N) = 0
+                            // L_new = - Dist_start / (V dot N)
+                            
+                            // P_start is p1x/y or p2x/y.
+                            var p_start_x = px - vx * L;
+                            var p_start_y = py - vy * L;
+                            var dist_start = (p_start_x - x1) * nx + (p_start_y - y1) * ny;
+                            var v_dot_n = vx * nx + vy * ny;
+                            
+                            if (Math.abs(v_dot_n) > 1e-5) {
+                                var L_new = -dist_start / v_dot_n;
+                                // ensure we don't flip backwards
+                                if (L_new > 0) {
+                                     return {
+                                         x: p_start_x + vx * L_new,
+                                         y: p_start_y + vy * L_new
+                                     };
+                                }
+                            }
+                            // If parallel or weird, just squash to start point
+                            return { x: p_start_x, y: p_start_y }; 
+                        }
+                        return { x: px, y: py };
+                    }
+
+                    var cp1 = clampHandle(cp1x, cp1y, t1vec_x, t1vec_y);
+                    var cp2 = clampHandle(cp2x, cp2y, t2vec_x, t2vec_y);
+                    
+                    return {
+                        p1: {x: p1x, y: p1y},
+                        cp1: cp1,
+                        cp2: cp2,
+                        p2: {x: p2x, y: p2y}
+                    };
+                }
+
+                var sideA = getSidePath(1);  // Top
+                var sideB = getSidePath(-1); // Bottom
+                
+                // Construct Path:
+                // Move to P1_A
+                // Cubic to P2_A (cp1, cp2)
+                // Line to P2_B
+                // Cubic to P1_B (cp2, cp1 from side B? Note orientation)
+                // Side B p1 is Node 1. Side B p2 is Node 2.
+                // We want path: P1_A -> P2_A -> P2_B -> P1_B -> Close
+                // The cubic for side B goes P1 -> P2.
+                // So we need to reverse it for the path drawing?
+                // Or just draw P2_B -> P1_B.
+                // For a cubic curve, simply reversing control points: C CP2 CP1 End.
+                
+                return "M" + sideA.p1.x + "," + sideA.p1.y +
+                       " C" + sideA.cp1.x + "," + sideA.cp1.y + " " + sideA.cp2.x + "," + sideA.cp2.y + " " + sideA.p2.x + "," + sideA.p2.y +
+                       " L" + sideB.p2.x + "," + sideB.p2.y +
+                       " C" + sideB.cp2.x + "," + sideB.cp2.y + " " + sideB.cp1.x + "," + sideB.cp1.y + " " + sideB.p1.x + "," + sideB.p1.y +
+                       " Z";
+            });
+
+            node.attr("cx", function (d) { return d.x; })
+                .attr("cy", function (d) { return d.y; });
+        }
+
+        // Color leaf nodes orange, and packages white or blue.
+        function color(d) {
+            return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+        }
+
+        // Toggle children on click.
+        function click(d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+            update();
+        }
+
+        // Returns a list of all nodes under the root.
+        function flatten(root) {
+            var nodes = [], i = 0;
+
+            function recurse(node) {
+                if (node.children) {
+                    var childSize = node.children.reduce(function (p, v) { return p + recurse(v); }, 0);
+                    // Only overwrite size if it doesn't exist
+                    if (!node.size) node.size = childSize;
+                } else if (node._children) {
+                    // Handle collapsed nodes - sum up hidden children sizes
+                    var childSize = node._children.reduce(function (p, v) {
+                        return p + (v.size || v.value || 1);
+                    }, 0);
+                    if (!node.size) node.size = childSize;
+                } else {
+                    if (!node.size) node.size = node.value || 1; 
+                }
+                if (!node.id) node.id = ++i;
+                nodes.push(node);
+                return node.size;
+            }
+
+            root.size = recurse(root);
+            return nodes;
+        }
+
+    </script>
+
+</body>
+
+</html>

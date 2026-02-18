@@ -114,14 +114,31 @@
 
             // --- NODES ---
 
-            // Define fixed font size for all nodes (scaled slightly by global factor)
-            var fontSize = 10 * scaleFactor;
+            // Define default font size (scaled by global factor)
+            var defaultFontSize = 10 * scaleFactor;
 
-            // Calculate width for each node based on text
+            // Calculate width and height for each node based on text and line count
             nodes.forEach(function (d) {
-                var estimatedTextWidth = d.name.length * fontSize * 0.6;
-                d.rectWidth = Math.max(d.radius * 2, estimatedTextWidth + (fontSize)); // Padding
-                d.rectHeight = d.radius * 2;
+                // Get font size from data or use default
+                var nodeFontSize = (d.fontSize || 10) * scaleFactor;
+                d.computedFontSize = nodeFontSize;
+
+                // Single line only for now
+                d.textLines = [d.name];
+
+                // Calculate width based on longest line
+                var maxLineWidth = 0;
+                d.textLines.forEach(function (line) {
+                    var lineWidth = line.length * nodeFontSize * 0.6;
+                    if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
+                });
+
+                // Calculate height based on number of lines
+                var lineHeight = nodeFontSize * 1.2;
+                var totalTextHeight = d.textLines.length * lineHeight;
+
+                d.rectWidth = Math.max(d.radius * 2, maxLineWidth + nodeFontSize);
+                d.rectHeight = Math.max(d.radius * 2, totalTextHeight + nodeFontSize * 0.8);
             });
 
             // Remove old circles if they exist (cleanup from previous version)
@@ -145,10 +162,13 @@
                 .style("stroke", function (d) { return d.borderColor || "#000"; })
                 .style("stroke-width", "1.5px");
 
+            // UPDATE text
             nodeData.select("text")
-                .transition()
                 .text(function (d) { return d.name; })
-                .style("font-size", fontSize + "px");
+                .style("font-size", function (d) { return d.computedFontSize + "px"; })
+                .style("font-weight", function (d) { return d.fontWeight || "normal"; })
+                .style("font-style", function (d) { return d.fontStyle || "normal"; })
+                .style("fill", function (d) { return d.fontColor || "#000"; });
 
             // ENTER new nodes
             var nodeEnter = nodeData.enter().append("svg:g")
@@ -167,14 +187,17 @@
                 .style("stroke-width", "1.5px")
                 .on("click", click);
 
+            // Add text
             nodeEnter.append("svg:text")
                 .attr("text-anchor", "middle")
                 .attr("dy", ".35em")
                 .text(function (d) { return d.name; })
                 .style("pointer-events", "none")
                 .style("font-family", "sans-serif")
-                .style("fill", "#000") // Black text
-                .style("font-size", fontSize + "px");
+                .style("fill", function (d) { return d.fontColor || "#000"; })
+                .style("font-size", function (d) { return d.computedFontSize + "px"; })
+                .style("font-weight", function (d) { return d.fontWeight || "normal"; })
+                .style("font-style", function (d) { return d.fontStyle || "normal"; });
 
             // EXIT old nodes
             nodeData.exit().remove();

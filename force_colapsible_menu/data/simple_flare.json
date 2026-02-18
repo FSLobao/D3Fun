@@ -3,134 +3,168 @@
     "size": 20,
     "color": "#ff0000",
     "borderColor": "#ff0000",
+    "fontSize": 14,
+    "fontWeight": "bold",
+    "fontColor": "#ffffff",
     "children": [
         {
-            "name": "Cluster A",
+            "name": "Cluster A\n(Orange)",
             "size": 20,
             "color": "#ff7f0e",
             "borderColor": "#ff7f0e",
+            "fontSize": 11,
+            "fontWeight": "bold",
+            "fontColor": "#000000",
             "children": [
                 {
                     "name": "Leaf A.1",
-                    "size": 10,
+                    "size": 0,
                     "color": "#ffbb78",
-                    "borderColor": "#ffbb78"
+                    "borderColor": "#ffbb78",
+                    "fontStyle": "italic",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf A.2",
                     "size": 10,
                     "color": "#ffbb78",
-                    "borderColor": "#ffbb78"
+                    "borderColor": "#ffbb78",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf A.3",
                     "size": 10,
                     "color": "#ffbb78",
-                    "borderColor": "#ffbb78"
+                    "borderColor": "#ffbb78",
+                    "fontColor": "#000000"
                 }
             ]
         },
         {
-            "name": "Cluster B",
+            "name": "Cluster B\n(Green)",
             "size": 20,
             "color": "#2ca02c",
             "borderColor": "#2ca02c",
+            "fontSize": 11,
+            "fontWeight": "bold",
+            "fontColor": "#ffffff",
             "children": [
                 {
                     "name": "Leaf B.1",
                     "size": 10,
                     "color": "#98df8a",
-                    "borderColor": "#98df8a"
+                    "borderColor": "#98df8a",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf B.2",
                     "size": 10,
                     "color": "#98df8a",
-                    "borderColor": "#98df8a"
+                    "borderColor": "#98df8a",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf B.3",
                     "size": 10,
                     "color": "#98df8a",
-                    "borderColor": "#98df8a"
+                    "borderColor": "#98df8a",
+                    "fontColor": "#000000"
                 }
             ]
         },
         {
-            "name": "Cluster C",
+            "name": "Cluster C\n(Blue)",
             "size": 20,
             "color": "#1f77b4",
             "borderColor": "#1f77b4",
+            "fontSize": 11,
+            "fontWeight": "bold",
+            "fontColor": "#ffffff",
             "children": [
                 {
                     "name": "Leaf C.1",
                     "size": 10,
                     "color": "#aec7e8",
-                    "borderColor": "#aec7e8"
+                    "borderColor": "#aec7e8",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf C.2",
                     "size": 10,
                     "color": "#aec7e8",
-                    "borderColor": "#aec7e8"
+                    "borderColor": "#aec7e8",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf C.3",
                     "size": 10,
                     "color": "#aec7e8",
-                    "borderColor": "#aec7e8"
+                    "borderColor": "#aec7e8",
+                    "fontColor": "#000000"
                 }
             ]
         },
         {
-            "name": "Cluster D",
+            "name": "Cluster D\n(Purple)",
             "size": 20,
             "color": "#9467bd",
             "borderColor": "#9467bd",
+            "fontSize": 11,
+            "fontWeight": "bold",
+            "fontColor": "#ffffff",
             "children": [
                 {
                     "name": "Leaf D.1",
                     "size": 10,
                     "color": "#c5b0d5",
-                    "borderColor": "#c5b0d5"
+                    "borderColor": "#c5b0d5",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf D.2",
                     "size": 10,
                     "color": "#c5b0d5",
-                    "borderColor": "#c5b0d5"
+                    "borderColor": "#c5b0d5",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf D.3",
                     "size": 10,
                     "color": "#c5b0d5",
-                    "borderColor": "#c5b0d5"
+                    "borderColor": "#c5b0d5",
+                    "fontColor": "#000000"
                 }
             ]
         },
         {
-            "name": "Cluster E",
+            "name": "Cluster E\n(Brown)",
             "size": 20,
             "color": "#8c564b",
             "borderColor": "#8c564b",
+            "fontSize": 11,
+            "fontWeight": "bold",
+            "fontColor": "#ffffff",
             "children": [
                 {
                     "name": "Leaf E.1",
                     "size": 10,
                     "color": "#c49c94",
-                    "borderColor": "#c49c94"
+                    "borderColor": "#c49c94",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf E.2",
                     "size": 10,
                     "color": "#c49c94",
-                    "borderColor": "#c49c94"
+                    "borderColor": "#c49c94",
+                    "fontColor": "#000000"
                 },
                 {
                     "name": "Leaf E.3",
                     "size": 10,
                     "color": "#c49c94",
-                    "borderColor": "#c49c94"
+                    "borderColor": "#c49c94",
+                    "fontColor": "#000000"
                 }
             ]
         }

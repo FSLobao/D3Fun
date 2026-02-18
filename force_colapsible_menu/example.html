@@ -191,7 +191,11 @@
 
             // Enter
             linkData.enter().insert("svg:path", ".node")
-                .attr("class", "link");
+                .attr("class", "link")
+                .style("opacity", 0)  // Start fully transparent
+                .transition()
+                .duration(400)  // Fade in over 400ms
+                .style("opacity", 1);
 
             // Update (set color on both enter and update to ensure consistency)
             linkData.style("fill", function (d) { return d.target.color || "#9ecae1"; });
@@ -269,7 +273,13 @@
             // ENTER new nodes
             var nodeEnter = nodeData.enter().append("svg:g")
                 .attr("class", "node")
+                .style("opacity", 0)  // Start fully transparent
                 .call(force.drag);
+
+            // Fade in animation
+            nodeEnter.transition()
+                .duration(400)  // 400 milliseconds
+                .style("opacity", 1);  // Fade to full opacity
 
             nodeEnter.append("svg:rect")
                 .attr("width", function (d) { return d.rectWidth; })

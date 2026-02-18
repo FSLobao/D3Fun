@@ -37,13 +37,13 @@
         var force = d3.layout.force()
             .on("tick", tick)
             // Much stronger charge ensures nodes spread out symmetrically
-            .charge(function (d) { return -800 - (d.radius * 10); })
+            .charge(function (d) { return -700 - (d.radius * 10); })
             .linkDistance(function (d) {
                 // Sum of radii + ample padding allows the "fan" to open up
-                return d.source.radius + d.target.radius + (5 * scaleFactor);
+                return d.source.radius + d.target.radius + (10 * scaleFactor);
             })
-            .friction(0.95) // Helps stabilize
-            .gravity(0.0015)  // Gentle pull to center so they don't fly away
+            .friction(0.90) // Helps stabilize
+            .gravity(0.0001)  // Gentle pull to center so they don't fly away
             .size([w, h]);
 
         var vis = d3.select("body").append("svg:svg")
@@ -72,8 +72,94 @@
             root.fixed = true;
             root.x = w / 2;
             root.y = h / 2;
+
+            // Hide all children initially for progressive reveal
+            collapseAll(root);
+
+            // Start with just the root
             update();
+
+            // Progressive reveal with outward push
+            expandProgressively(root, 0);
         });
+
+        // Collapse all children recursively
+        function collapseAll(node) {
+            if (node.children) {
+                node._children = node.children;
+                node._children.forEach(collapseAll);
+                node.children = null;
+            }
+        }
+
+        // Expand nodes layer by layer with delay
+        function expandProgressively(node, depth) {
+            if (!node._children) return;
+
+            setTimeout(function () {
+                // Expand this level
+                node.children = node._children;
+                node._children = null;
+
+                var childCount = node.children.length;
+
+                // Calculate arc parameters for positioning
+                var parentAngle = node.angle !== undefined ? node.angle : 0;
+                var parentArcWidth = node.arcWidth !== undefined ? node.arcWidth : 360;
+                var childArcWidth = parentArcWidth / childCount;
+
+                // Distance from parent for initial positioning
+                var positionDistance = 20; // pixels from parent center
+
+                // Position children in an arc around parent
+                node.children.forEach(function (child, i) {
+                    var childAngle;
+
+                    if (depth === 0) {
+                        // Root's children: distribute evenly around full 360° circle
+                        childAngle = (i / childCount) * 360;
+                    } else {
+                        // Deeper nodes: distribute within parent's arc sector
+                        // Center the distribution on the parent's angle
+                        var startAngle = parentAngle - parentArcWidth / 2;
+                        childAngle = startAngle + (i + 0.5) * childArcWidth;
+                    }
+
+                    // Store angle and arc width for this child's future children
+                    child.angle = childAngle;
+                    child.arcWidth = childArcWidth;
+
+                    // Convert angle to radians (subtract 90 to start from top, like clock)
+                    var angleRad = (childAngle - 90) * Math.PI / 180;
+
+                    // Calculate position offset from parent
+                    var offsetX = Math.cos(angleRad) * positionDistance;
+                    var offsetY = Math.sin(angleRad) * positionDistance;
+
+                    // Set both current (x,y) and previous (px,py) positions
+                    child.x = child.px = node.x + offsetX;
+                    child.y = child.py = node.y + offsetY;
+                });
+
+                update();
+
+                // Force immediate position update after nodes are created
+                node.children.forEach(function (child, i) {
+                    var childAngle = child.angle;
+                    var angleRad = (childAngle - 90) * Math.PI / 180;
+                    var offsetX = Math.cos(angleRad) * positionDistance;
+                    var offsetY = Math.sin(angleRad) * positionDistance;
+
+                    child.x = child.px = node.x + offsetX;
+                    child.y = child.py = node.y + offsetY;
+                });
+
+                // Recursively expand children's children
+                node.children.forEach(function (child) {
+                    expandProgressively(child, depth + 1);
+                });
+            }, 300 * (depth + 1)); // 300ms delay per level
+        }
 
         function update() {
             var nodes = flatten(root),
@@ -90,6 +176,14 @@
                 .links(links)
                 .start();
 
+            // Re-assert positions after force.start() to prevent override
+            nodes.forEach(function (d) {
+                if (d.px !== undefined) {
+                    d.x = d.px;
+                    d.y = d.py;
+                }
+            });
+
             // --- LINKS ---
             // Solid color implementation as more robust alternative to gradients
             var linkData = vis.selectAll("path.link")
@@ -97,8 +191,10 @@
 
             // Enter
             linkData.enter().insert("svg:path", ".node")
-                .attr("class", "link")
-                .style("fill", function (d) { return d.target.color || color(d.target); });
+                .attr("class", "link");
+
+            // Update (set color on both enter and update to ensure consistency)
+            linkData.style("fill", function (d) { return d.target.color || "#9ecae1"; });
 
             // Exit
             linkData.exit().remove();
@@ -209,9 +305,30 @@
         function tick(e) {
             // Update Positions
 
+            // --- RADIAL OUTWARD FORCE FROM CENTER ---
+            // Push nodes away from canvas center
+            var centerX = w / 2;
+            var centerY = h / 2;
+            var radialStrength = 0.001; // Adjust strength (0.1 = weak, 1.0 = strong)
+
+            var nodes = force.nodes();
+            for (var i = 0; i < nodes.length; i++) {
+                var d = nodes[i];
+                if (d.fixed) continue; // Don't push the central node
+
+                var dx = d.x - centerX;
+                var dy = d.y - centerY;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 0) {
+                    // Normalize and apply outward push
+                    d.x += (dx / distance) * radialStrength;
+                    d.y += (dy / distance) * radialStrength;
+                }
+            }
+
             // --- COLLISION DETECTION ---
             // N^2 iteration to prevent rectangular overlap
-            var nodes = force.nodes();
             var padding = 5 * (scaleFactor / 3); // Scale padding 
 
             // --- BOUNDARY REPULSION ---
@@ -275,12 +392,12 @@
 
                         if (penX < penY) {
                             var sign = (dx === 0) ? (Math.random() - 0.5) : (dx / Math.abs(dx));
-                            var push = penX * 0.5 * k;
+                            var push = penX * 1.0 * k;
                             a.x += sign * push;
                             b.x -= sign * push;
                         } else {
                             var sign = (dy === 0) ? (Math.random() - 0.5) : (dy / Math.abs(dy));
-                            var push = penY * 0.5 * k;
+                            var push = penY * 1.0 * k;
                             a.y += sign * push;
                             b.y -= sign * push;
                         }
